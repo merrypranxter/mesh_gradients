@@ -11,6 +11,7 @@
 //   node examples/04-svg-meshgradient.js > mesh.svg
 // =============================================================================
 
+import { pathToFileURL } from 'node:url';
 import { hexToRgb, rgbToHex, oklabToSrgb, srgbToOklab } from '../src/js/color-systems.js';
 
 // bilinear-in-OKLab sample of the 4 corner colors at (u,v) ∈ [0,1]²
@@ -40,7 +41,6 @@ export function bakeSvgMesh(corners, opts = {}) {
       // top-left corner color of this sub-patch (SVG meshrows go top→bottom)
       const u = c / divisions, v = 1 - r / divisions;
       const stop = sampleCorner(corners, u, v);
-      const x = c === 0 ? `<meshrow>` : '';
       patches.push(
         `      <meshpatch>
         <stop path="l ${step},0" stop-color="${stop}"/>
@@ -62,7 +62,7 @@ ${rows.join('\n')}
 </svg>`;
 }
 
-const isMain = import.meta.url === `file://${process?.argv?.[1]}`;
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   // coons_quad preset corners
   process.stdout.write(bakeSvgMesh(['#FF6B9D', '#6B9DFF', '#FFD66B', '#6BFFB8'], { divisions: 6 }));

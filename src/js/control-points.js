@@ -20,6 +20,9 @@ export class ControlPoints {
     this.points = [];       // { x, y, color:[r,g,b], vx, vy }
     this.dragging = null;
     this.driftSpeed = 1.0;
+    // reused per-frame upload buffers — avoids allocating every frame
+    this._posArr = new Float32Array(MAX_POINTS * 2);
+    this._colArr = new Float32Array(MAX_POINTS * 3);
 
     const down = (e) => this._onDown(this._norm(e));
     const move = (e) => this._onMove(this._norm(e));
@@ -44,7 +47,9 @@ export class ControlPoints {
 
   get count() { return this.points.length; }
 
-  /** Replace all points from a preset: { colors:[...], layout?:'grid'|'ring' }. */
+  /** Replace all points from a preset.
+   *  @param {string[]|number[][]} colors hex strings or [r,g,b]
+   *  @param {'ring'|'grid'|'vertical'} layout starting arrangement */
   load(colors, layout = 'ring') {
     this.clear();
     const n = colors.length;
@@ -70,28 +75,34 @@ export class ControlPoints {
     for (let i = 0; i < this.points.length; i++) {
       if (i === this.dragging) continue;
       const p = this.points[i];
-      p.vx += (Math.random() - 0.5) * 0.02 * this.driftSpeed;
-      p.vy += (Math.random() - 0.5) * 0.02 * this.driftSpeed;
+      // frame-rate-independent drift: random force ∝ √dt (Brownian), damping as
+      // a continuous decay pow(rate, dt). Otherwise 144/240Hz monitors over-damp
+      // and accumulate noise faster than 60Hz ones.
+      const force = 0.15 * this.driftSpeed * Math.sqrt(dt);
+      p.vx += (Math.random() - 0.5) * force;
+      p.vy += (Math.random() - 0.5) * force;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       // soft-bounce off the edges instead of clamping dead
       if (p.x < 0 || p.x > 1) { p.vx *= -1; p.x = Math.max(0, Math.min(1, p.x)); }
       if (p.y < 0 || p.y > 1) { p.vy *= -1; p.y = Math.max(0, Math.min(1, p.y)); }
-      p.vx *= 0.95;
-      p.vy *= 0.95;
+      const damp = Math.pow(0.05, dt);   // ~95% of velocity bled off per second
+      p.vx *= damp;
+      p.vy *= damp;
     }
   }
 
-  /** Float32Array of [x0,y0, x1,y1, ...] for u_points. */
+  /** Float32Array of [x0,y0, x1,y1, ...] for u_points. Returns a shared buffer
+   *  (overwritten each call) — upload it before calling again. */
   positionsArray() {
-    const a = new Float32Array(MAX_POINTS * 2);
+    const a = this._posArr;
     this.points.forEach((p, i) => { a[i * 2] = p.x; a[i * 2 + 1] = p.y; });
     return a;
   }
 
-  /** Float32Array of [r0,g0,b0, ...] for u_colors. */
+  /** Float32Array of [r0,g0,b0, ...] for u_colors. Shared buffer, see above. */
   colorsArray() {
-    const a = new Float32Array(MAX_POINTS * 3);
+    const a = this._colArr;
     this.points.forEach((p, i) => { a.set(p.color, i * 3); });
     return a;
   }
@@ -106,9 +117,13 @@ export class ControlPoints {
   }
 
   _onDown({ x, y }) {
+    // aspect-correct the horizontal axis so the grab area is a screen-circle,
+    // not an ellipse on wide viewports (matches the shaders' aspect handling).
+    const rect = this.canvas.getBoundingClientRect();
+    const aspect = rect.width / rect.height;
     let best = null, bestD = GRAB_RADIUS;
     this.points.forEach((p, i) => {
-      const d = Math.hypot(p.x - x, p.y - y);
+      const d = Math.hypot((p.x - x) * aspect, p.y - y);
       if (d < bestD) { bestD = d; best = i; }
     });
     this.dragging = best;

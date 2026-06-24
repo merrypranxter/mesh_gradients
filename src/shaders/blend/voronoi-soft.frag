@@ -54,5 +54,6 @@ void main() {
         wSum   += w;
     }
 
-    fragColor = vec4(oklab_to_srgb(labSum / wSum), 1.0);
+    // guard u_numPoints == 0: 0/0 → NaN
+    fragColor = vec4(oklab_to_srgb(labSum / max(wSum, 1e-5)), 1.0);
 }

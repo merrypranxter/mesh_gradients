@@ -45,6 +45,7 @@ void main() {
         weightSum += w;
     }
 
-    vec3 lab = labSum / weightSum;
+    // guard u_numPoints == 0 (init/transition): 0/0 → NaN → black/white screen
+    vec3 lab = labSum / max(weightSum, 1e-5);
     fragColor = vec4(oklab_to_srgb(lab), 1.0);
 }

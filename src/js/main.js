@@ -34,7 +34,10 @@ const warp = new DomainWarp();
 const points = new ControlPoints(canvas);
 
 let programs = {};       // engine name → WebGL program
+let setters = {};        // engine name → cached uniform setter
 let displayProgram = null;
+let displaySetter = null;
+let displaySceneLoc = null;
 let sceneRT = null;
 let presets = null;
 let current = null;      // active preset object
@@ -46,8 +49,11 @@ async function init() {
   const vert = await loadShader('fullscreen.vert');
   for (const [name, path] of Object.entries(ENGINES)) {
     programs[name] = createProgram(gl, vert, await loadShader(path));
+    setters[name] = makeUniformSetter(gl, programs[name]); // cache per program
   }
   displayProgram = createProgram(gl, vert, await loadShader('display.frag'));
+  displaySetter = makeUniformSetter(gl, displayProgram);
+  displaySceneLoc = gl.getUniformLocation(displayProgram, 'u_scene');
 
   presets = await (await fetch(new URL('../data/presets.json', import.meta.url))).json();
   resize();
@@ -91,7 +97,7 @@ function frame(now) {
   // ---- pass 2/3/4: render the field into the scene FBO ----
   const prog = programs[current.engine];
   gl.useProgram(prog);
-  const u = makeUniformSetter(gl, prog);
+  const u = setters[current.engine];   // cached at init, not per-frame
   u.v2a('u_points', points.positionsArray());
   u.v3a('u_colors', points.colorsArray());
   u.i('u_numPoints', points.count);
@@ -111,10 +117,10 @@ function frame(now) {
 
   // ---- pass 5: post finisher to the screen ----
   gl.useProgram(displayProgram);
-  const d = makeUniformSetter(gl, displayProgram);
+  const d = displaySetter;
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, sceneRT.tex);
-  gl.uniform1i(gl.getUniformLocation(displayProgram, 'u_scene'), 0);
+  gl.uniform1i(displaySceneLoc, 0);
   d.v2('u_resolution', canvas.width, canvas.height);
   d.f('u_time', t);
   const post = current.post || {};

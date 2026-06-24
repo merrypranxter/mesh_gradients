@@ -63,5 +63,14 @@ export async function renderStill(opts = {}) {
   gl.viewport(0, 0, width, height);
   gl.bindVertexArray(quad);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
-  return canvas.toDataURL('image/png');
+  const dataUrl = canvas.toDataURL('image/png');
+
+  // release GPU resources + the context itself. Browsers cap live WebGL
+  // contexts at ~8–16; without this the gallery (one renderStill per preset)
+  // exhausts the limit and later renders fail with context-lost.
+  gl.deleteProgram(prog);
+  gl.deleteVertexArray(quad);
+  gl.getExtension('WEBGL_lose_context')?.loseContext();
+
+  return dataUrl;
 }

@@ -40,7 +40,9 @@ void main() {
         weightSum += w;
     }
 
-    // weightSum can underflow far from every point; fall back to nearest-ish
+    // weightSum can underflow far from every point; floor it so we don't divide
+    // by zero. In that far-field regime labSum is ~0 too, so the result trends
+    // to black — keep the radius large enough that the field always reaches.
     vec3 lab = labSum / max(weightSum, 1e-5);
     fragColor = vec4(oklab_to_srgb(lab), 1.0);
 }

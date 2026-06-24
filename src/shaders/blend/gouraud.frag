@@ -41,15 +41,15 @@ void main() {
         else if (d < d2) { d2 = d; i2 = i; }
     }
 
-    // barycentric-ish weights: inverse distance, normalized over the 3 nearest
-    float w0 = 1.0 / (sqrt(d0) + 1e-4);
-    float w1 = 1.0 / (sqrt(d1) + 1e-4);
-    float w2 = (i2 >= 0) ? 1.0 / (sqrt(d2) + 1e-4) : 0.0;
-    float ws = w0 + w1 + w2;
+    // barycentric-ish weights: inverse distance, normalized over the 3 nearest.
+    // accumulate only valid indices — with <3 points i1/i2 stay -1, and reading
+    // u_colors[-1] is UB / a crash on many GPUs.
+    vec3  labSum = vec3(0.0);
+    float ws = 0.0;
+    if (i0 >= 0) { float w = 1.0 / (sqrt(d0) + 1e-4); labSum += w * srgb_to_oklab(u_colors[i0]); ws += w; }
+    if (i1 >= 0) { float w = 1.0 / (sqrt(d1) + 1e-4); labSum += w * srgb_to_oklab(u_colors[i1]); ws += w; }
+    if (i2 >= 0) { float w = 1.0 / (sqrt(d2) + 1e-4); labSum += w * srgb_to_oklab(u_colors[i2]); ws += w; }
 
-    vec3 lab = (w0 * srgb_to_oklab(u_colors[i0])
-              + w1 * srgb_to_oklab(u_colors[i1])
-              + w2 * srgb_to_oklab(u_colors[max(i2, 0)])) / ws;
-
+    vec3 lab = (ws > 0.0) ? (labSum / ws) : vec3(0.0);
     fragColor = vec4(oklab_to_srgb(lab), 1.0);
 }

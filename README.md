@@ -8,12 +8,12 @@ Freeform multi-point gradients — Coons patches / gradient mesh — the warpabl
 
 ## engines
 
-- `coons.glsl` — bicubic Coons patch, 4-corner colors (the SVG meshgradient primitive).
-- `gouraud.glsl` — per-vertex colored triangle mesh.
-- `idw.glsl` — inverse-distance / Shepard weighting from N color points → the blob look.
-- `rbf.glsl` — Gaussian RBF blend, smoothest.
-- `voronoi_soft.glsl` — Voronoi color regions, softened edges. Flags unbuilt `voronoi_systems`.
-- domain-warp module: add Perlin/Simplex to UV before sampling → the liquid wobble.
+- `blend/coons.frag` — bicubic Coons patch, 4-corner colors (the SVG meshgradient primitive).
+- `blend/gouraud.frag` — per-vertex colored triangle mesh.
+- `blend/idw.frag` — inverse-distance / Shepard weighting from N color points → the blob look.
+- `blend/rbf.frag` — Gaussian RBF blend, smoothest.
+- `blend/voronoi-soft.frag` — Voronoi color regions, softened edges. Flags unbuilt `voronoi_systems`.
+- `common/noise.glsl` domain-warp helper: add Perlin/Simplex to UV before sampling → the liquid wobble.
 
 ## pipeline
 

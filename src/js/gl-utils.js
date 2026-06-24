@@ -26,6 +26,8 @@ export function createProgram(gl, vertSrc, fragSrc) {
   gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
     const log = gl.getProgramInfoLog(prog);
+    gl.deleteShader(vs);    // clean up the stages too, not just the program
+    gl.deleteShader(fs);
     gl.deleteProgram(prog);
     throw new Error(`program link failed:\n${log}`);
   }

@@ -32,18 +32,23 @@ float hash(vec2 p) {
 void main() {
     vec2 texel = 1.0 / u_resolution;
 
-    // --- 1. separable-ish 9-tap blur ---
-    vec3 col = vec3(0.0);
-    float r = u_blur * 2.5;
-    float wsum = 0.0;
-    for (int x = -1; x <= 1; x++) {
-        for (int y = -1; y <= 1; y++) {
-            float w = (x == 0 && y == 0) ? 4.0 : ((x == 0 || y == 0) ? 2.0 : 1.0);
-            col += w * texture(u_scene, v_uv + vec2(float(x), float(y)) * texel * r).rgb;
-            wsum += w;
+    // --- 1. separable-ish 9-tap blur (skip the 9 taps when blur is off) ---
+    vec3 col;
+    if (u_blur < 0.01) {
+        col = texture(u_scene, v_uv).rgb;
+    } else {
+        col = vec3(0.0);
+        float r = u_blur * 2.5;
+        float wsum = 0.0;
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                float w = (x == 0 && y == 0) ? 4.0 : ((x == 0 || y == 0) ? 2.0 : 1.0);
+                col += w * texture(u_scene, v_uv + vec2(float(x), float(y)) * texel * r).rgb;
+                wsum += w;
+            }
         }
+        col /= wsum;
     }
-    col /= wsum;
 
     // --- 2. holo iridescence: rotate hue in OKLCh by a drifting field ---
     if (u_holo > 0.001) {

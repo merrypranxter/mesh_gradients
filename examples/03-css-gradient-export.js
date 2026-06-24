@@ -10,6 +10,7 @@
 //   …or import { bakeCssGradient } and use it in a build step.
 // =============================================================================
 
+import { pathToFileURL } from 'node:url';
 import { hexToRgb, rgbToHex, mixOklab } from '../src/js/color-systems.js';
 
 /**
@@ -33,7 +34,7 @@ export function bakeCssGradient(stops, opts = {}) {
 }
 
 // --- demo when run directly under node -------------------------------------
-const isMain = import.meta.url === `file://${process?.argv?.[1]}`;
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   const stripe = ['#FF6B9D', '#C66BFF', '#6B9DFF', '#6BFFB8', '#FFD66B', '#FF8C6B'];
   console.log('/* stripe_mesh, OKLab-baked: */');

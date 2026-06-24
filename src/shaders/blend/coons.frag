@@ -36,11 +36,13 @@ void main() {
     float u = ease(uv.x);
     float v = ease(uv.y);
 
-    // corner colors → OKLab
+    // corner colors → OKLab. clamp the index ≥ 0 so u_numPoints == 0 can't
+    // index u_colors[-1] (out of bounds).
+    int maxIdx = max(0, u_numPoints - 1);
     vec3 c00 = srgb_to_oklab(u_colors[0]);
-    vec3 c10 = srgb_to_oklab(u_colors[min(u_numPoints - 1, 1)]);
-    vec3 c01 = srgb_to_oklab(u_colors[min(u_numPoints - 1, 2)]);
-    vec3 c11 = srgb_to_oklab(u_colors[min(u_numPoints - 1, 3)]);
+    vec3 c10 = srgb_to_oklab(u_colors[min(maxIdx, 1)]);
+    vec3 c01 = srgb_to_oklab(u_colors[min(maxIdx, 2)]);
+    vec3 c11 = srgb_to_oklab(u_colors[min(maxIdx, 3)]);
 
     // bilinear blend of eased params == Coons patch for corner-only data
     vec3 bottom = mix(c00, c10, u);
