@@ -1,0 +1,13 @@
+{
+  "name": "mesh_gradients",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-point freeform gradients (Coons / IDW / RBF / Voronoi), interpolated in OKLab for vivid midpoints. Draggable liquid-blob aesthetic.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "serve": "npx --yes serve -l 8080 ."
+  },
+  "keywords": ["gradient", "mesh", "oklab", "webgl2", "glsl", "interpolation"],
+  "license": "MIT"
+}

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>example 01 — OKLab vs RGB lerp</title>
+<style>
+  body { margin: 0; background: #0a0a0a; color: #eee; font-family: monospace; padding: 24px; }
+  h1 { font-size: 16px; font-weight: normal; opacity: .8; }
+  .row { margin: 18px 0; }
+  .label { font-size: 12px; opacity: .7; margin-bottom: 4px; }
+  canvas { width: 100%; height: 90px; display: block; border-radius: 6px; }
+  .note { font-size: 12px; opacity: .6; max-width: 60ch; line-height: 1.5; }
+</style>
+</head>
+<body>
+<h1>The single most important lesson in the batch: where the midpoint goes.</h1>
+
+<div class="row">
+  <div class="label">sRGB lerp — the enemy. Watch the middle go muddy-grey.</div>
+  <canvas id="rgb"></canvas>
+</div>
+<div class="row">
+  <div class="label">OKLab lerp — the friend. Vivid all the way through.</div>
+  <canvas id="oklab"></canvas>
+</div>
+
+<p class="note">
+  Same two endpoints, same number of samples. The only difference is the space
+  the average is taken in. This is why <code>color_systems</code> exists and why
+  every engine in this repo accumulates in OKLab.
+</p>
+
+<script type="module">
+import { hexToRgb, mixSrgb, mixOklab } from '../src/js/color-systems.js';
+
+// a deliberately hard pair: hot pink → cyan crosses the grey axis in sRGB
+const stops = ['#FF0066', '#00E0FF', '#FFE600'];
+
+function paint(id, mixFn) {
+  const c = document.getElementById(id);
+  const dpr = devicePixelRatio || 1;
+  c.width = c.clientWidth * dpr;
+  c.height = c.clientHeight * dpr;
+  const ctx = c.getContext('2d');
+  const segs = stops.length - 1;
+  for (let x = 0; x < c.width; x++) {
+    const tt = (x / c.width) * segs;
+    const i = Math.min(Math.floor(tt), segs - 1);
+    const col = mixFn(hexToRgb(stops[i]), hexToRgb(stops[i + 1]), tt - i);
+    ctx.fillStyle = `rgb(${col.map((v) => Math.round(v * 255)).join(',')})`;
+    ctx.fillRect(x, 0, 1, c.height);
+  }
+}
+
+const draw = () => { paint('rgb', mixSrgb); paint('oklab', mixOklab); };
+draw();
+addEventListener('resize', draw);
+</script>
+</body>
+</html>

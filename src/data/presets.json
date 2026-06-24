@@ -1,0 +1,84 @@
+{
+  "$schema": "./presets.schema.json",
+  "presets": {
+    "stripe_mesh": {
+      "label": "Stripe Mesh",
+      "engine": "idw",
+      "layout": "ring",
+      "colors": ["#FF6B9D", "#C66BFF", "#6B9DFF", "#6BFFB8", "#FFD66B", "#FF8C6B"],
+      "params": { "power": 1.8 },
+      "warp": 0.12,
+      "drift": 0.35,
+      "post": { "blur": 0.45, "holo": 0.0, "vignette": 0.18, "grain": 0.25 }
+    },
+    "liquid_blob": {
+      "label": "Liquid Blob",
+      "engine": "idw",
+      "layout": "ring",
+      "colors": ["#FF0066", "#00E0FF", "#FFE600", "#7A00FF"],
+      "params": { "power": 3.0 },
+      "warp": 0.6,
+      "drift": 0.5,
+      "post": { "blur": 0.7, "holo": 0.0, "vignette": 0.25, "grain": 0.2 }
+    },
+    "aurora": {
+      "label": "Aurora",
+      "engine": "rbf",
+      "layout": "vertical",
+      "colors": ["#00ff9d", "#00d4ff", "#9d00ff", "#ff00d4"],
+      "params": { "radius": 0.35 },
+      "warp": 0.3,
+      "drift": 0.3,
+      "post": { "blur": 0.5, "holo": 0.0, "vignette": 0.3, "grain": 0.3 }
+    },
+    "holo_foil": {
+      "label": "Holo Foil",
+      "engine": "rbf",
+      "layout": "grid",
+      "colors": ["#C0C0FF", "#FFD0E0", "#D0FFE0", "#E0D0FF", "#FFE0C0", "#C0FFF0"],
+      "params": { "radius": 0.3 },
+      "warp": 0.25,
+      "drift": 0.25,
+      "post": { "blur": 0.4, "holo": 0.8, "vignette": 0.2, "grain": 0.35 }
+    },
+    "acid_mesh": {
+      "label": "Acid Mesh",
+      "engine": "gouraud",
+      "layout": "grid",
+      "colors": ["#FF00FF", "#00FF00", "#FFFF00", "#00FFFF", "#FF0000", "#0000FF", "#FF8000", "#8000FF"],
+      "params": {},
+      "warp": 0.8,
+      "drift": 0.9,
+      "post": { "blur": 0.25, "holo": 0.15, "vignette": 0.15, "grain": 0.4 }
+    },
+    "voronoi_stained": {
+      "label": "Voronoi (soft)",
+      "engine": "voronoi_soft",
+      "layout": "grid",
+      "colors": ["#FF6B9D", "#6BFFB8", "#6B9DFF", "#FFD66B", "#C66BFF", "#FF8C6B"],
+      "params": { "softness": 0.06 },
+      "warp": 0.2,
+      "drift": 0.4,
+      "post": { "blur": 0.2, "holo": 0.0, "vignette": 0.2, "grain": 0.25 }
+    },
+    "coons_quad": {
+      "label": "Coons Patch",
+      "engine": "coons",
+      "layout": "grid",
+      "colors": ["#FF6B9D", "#6B9DFF", "#FFD66B", "#6BFFB8"],
+      "params": {},
+      "warp": 0.1,
+      "drift": 0.15,
+      "post": { "blur": 0.3, "holo": 0.0, "vignette": 0.18, "grain": 0.2 }
+    }
+  },
+  "keymap": {
+    "1": "stripe_mesh",
+    "2": "liquid_blob",
+    "3": "aurora",
+    "4": "holo_foil",
+    "5": "acid_mesh",
+    "6": "voronoi_stained",
+    "7": "coons_quad"
+  }
+}

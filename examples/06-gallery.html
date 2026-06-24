@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>example 06 — preset gallery (static stills)</title>
+<style>
+  body { margin: 0; background: #0a0a0a; color: #ddd; font-family: monospace; padding: 24px; }
+  h1 { font-size: 15px; font-weight: normal; opacity: .8; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  figure { margin: 0; }
+  img { width: 100%; aspect-ratio: 1; border-radius: 8px; display: block; background: #111; }
+  figcaption { font-size: 12px; opacity: .7; margin-top: 6px; }
+</style>
+</head>
+<body>
+<h1>Every preset, baked to a still via renderStill() — a one-glance visual audit.</h1>
+<div class="grid" id="grid"></div>
+
+<script type="module">
+import { renderStill } from './05-export-png.js';
+
+const presets = await (await fetch('../src/data/presets.json')).json();
+const grid = document.getElementById('grid');
+
+for (const [key, p] of Object.entries(presets.presets)) {
+  const fig = document.createElement('figure');
+  const img = document.createElement('img');
+  const cap = document.createElement('figcaption');
+  cap.textContent = `${p.label} · ${p.engine} · ${p.colors.length}pts`;
+  fig.append(img, cap);
+  grid.append(fig);
+
+  // render at a modest size so a dozen contexts don't choke
+  img.src = await renderStill({
+    engine: p.engine,
+    colors: p.colors,
+    layout: p.layout,
+    width: 480, height: 480,
+    power: p.params?.power ?? 2,
+    radius: p.params?.radius ?? 0.32,
+    softness: p.params?.softness ?? 0.06,
+    warp: p.warp ?? 0.25,
+    time: 8,
+  });
+}
+</script>
+</body>
+</html>

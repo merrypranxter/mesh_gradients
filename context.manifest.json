@@ -1,0 +1,33 @@
+{
+  "repo": "mesh_gradients",
+  "type": "color_generator",
+  "domain": "gradient_mesh",
+  "description": "Multi-point freeform gradients: Coons patches, IDW, RBF, Voronoi. Interpolated in OKLab for vivid midpoints. Draggable liquid-blob aesthetic.",
+  "batch": "color_lab_batch2",
+  "consumes": [
+    "color_systems"
+  ],
+  "consumed_by": [],
+  "archetype": "GRADIENT_MESH",
+  "tech_stack": [
+    "webgl2",
+    "glsl",
+    "vanilla_js"
+  ],
+  "keywords": [
+    "gradient",
+    "mesh",
+    "oklab",
+    "interpolation",
+    "liquid"
+  ],
+  "canon": {
+    "fbo_ping_pong": true,
+    "additive_blend": true,
+    "1d_ramp": "color_systems.js",
+    "post_finisher": true
+  },
+  "priority": 3,
+  "difficulty": "easy",
+  "status": "briefed"
+}
