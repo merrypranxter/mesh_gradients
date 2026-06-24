@@ -1,0 +1,199 @@
+# mesh_gradients — REPO SEED
+
+## The Goldmine
+
+Gradients with more than two ends. The Stripe logo. The Apple "liquid blob" aesthetic. Colors that flow through 6, 8, 12 control points without ever going muddy. The secret is not the number of points — it's the color space you interpolate in. RGB lerp goes through grey. OKLab lerp stays saturated. This is the single most important lesson in the entire batch.
+
+## The Math
+
+### Coons Patch (Bicubic)
+A surface defined by 4 corner colors, with cubic interpolation along edges:
+```
+P(u,v) = (1-u)(1-v)C00 + u(1-v)C10 + (1-u)vC01 + uvC11
+       + edge blending terms for smoothness
+```
+- u,v ∈ [0,1] across the patch.
+- Interpolate corner colors in OKLab, not RGB.
+
+### Inverse-Distance Weighting (IDW / Shepard)
+```
+weight_i = 1 / distance(p, point_i)^power
+sum_weights = Σ weight_i
+color(p) = Σ (weight_i / sum_weights) * color_i
+```
+- power ∈ [1,4]. Higher = sharper transitions.
+- The "blob" look. Soft, organic, lava-lamp.
+
+### Gaussian RBF
+```
+weight_i = exp(-(distance(p, point_i) / radius)²)
+color(p) = Σ (weight_i / sum_weights) * color_i
+```
+- Smoothest of all. Almost liquid.
+
+### OKLab Interpolation (The Critical Rule)
+```glsl
+// WRONG: RGB lerp goes muddy
+vec3 wrong = mix(c1, c2, t);  // grey midpoint
+
+// RIGHT: OKLab lerp stays vivid
+vec3 lab1 = srgb_to_oklab(c1);
+vec3 lab2 = srgb_to_oklab(c2);
+vec3 lab = mix(lab1, lab2, t);
+vec3 right = oklab_to_srgb(lab);  // saturated midpoint
+```
+This is the entire reason `color_systems` exists. Use it.
+
+## The GLSL / JS Pipeline
+
+### Pass Order
+1. **Define** control points (position + sRGB color).
+2. **Convert** corner colors → OKLab via `color_systems`.
+3. **Interpolate** the field (Coons / IDW / RBF / Voronoi) in OKLab space.
+4. **Convert** interpolated OKLab → sRGB via `color_systems`.
+5. **Domain-warp** UVs with Perlin/Simplex noise for the wobble.
+6. **Animate** control points (slow drift + mouse-drag).
+7. **Post** soft blur + light CRT/vignette.
+
+### IDW Fragment Shader
+```glsl
+uniform vec2 u_points[12];
+uniform vec3 u_colors[12];  // sRGB
+uniform int u_numPoints;
+uniform float u_power;
+
+in vec2 v_uv;
+out vec4 fragColor;
+
+// from color_systems
+vec3 srgb_to_oklab(vec3 rgb);
+vec3 oklab_to_srgb(vec3 lab);
+
+void main() {
+  vec3 labSum = vec3(0.0);
+  float weightSum = 0.0;
+  
+  for (int i = 0; i < 12; i++) {
+    if (i >= u_numPoints) break;
+    float d = distance(v_uv, u_points[i]);
+    if (d < 0.0001) { fragColor = vec4(u_colors[i], 1.0); return; }
+    float w = 1.0 / pow(d, u_power);
+    labSum += w * srgb_to_oklab(u_colors[i]);
+    weightSum += w;
+  }
+  
+  vec3 lab = labSum / weightSum;
+  vec3 rgb = oklab_to_srgb(lab);
+  fragColor = vec4(rgb, 1.0);
+}
+```
+
+## Aesthetic Post + Tonal Guide
+
+### Pastel Stripe
+```js
+const stripeMesh = ['#FF6B9D','#C66BFF','#6B9DFF','#6BFFB8','#FFD66B','#FF8C6B'];
+```
+6 points, slow drift, minimal domain warp. Soft, friendly, commercial.
+
+### Liquid Blob
+4 points, heavy IDW (power=3), strong domain warp (0.6). Lava-lamp, organic, hypnotic.
+
+### Aurora
+Vertical bands, OKLab interpolation, vertical drift. `['#00ff9d','#00d4ff','#9d00ff','#ff00d4']`.
+
+### Holo Foil
+Hue-cycling + iridescence hook from `thin_film_iridescence`. Metallic, shifting, futuristic.
+
+### Acid Mesh
+Maximalist neon, fast warp, 8+ points. On-brand for the chaos-goblin.
+
+## Repo Architecture
+
+```
+mesh_gradients/
+├── README.md
+├── repo_seed.txt
+├── context.manifest.json
+├── index.html
+├── .gitignore
+├── src/
+│   ├── js/
+│   │   ├── main.js
+│   │   ├── control-points.js
+│   │   └── domain-warp.js
+│   ├── shaders/
+│   │   ├── blend/
+│   │   │   ├── coons.frag
+│   │   │   ├── idw.frag
+│   │   │   ├── rbf.frag
+│   │   │   └── voronoi-soft.frag
+│   │   └── display.frag
+│   └── data/
+│       └── presets.json
+└── docs/
+    ├── visual-targets.md
+    └── blend-math.md
+```
+
+## Code Snippets to Seed Copilot
+
+### Control Point Dragger
+```js
+class ControlPoints {
+  constructor(canvas, gl) {
+    this.points = []; // {x, y, color}
+    this.canvas = canvas;
+    this.dragging = null;
+    canvas.addEventListener('mousedown', e => this.onDown(e));
+    canvas.addEventListener('mousemove', e => this.onMove(e));
+    canvas.addEventListener('mouseup', () => this.dragging = null);
+  }
+  add(x, y, color) { this.points.push({x,y,color, vx:0, vy:0}); }
+  onDown(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = 1.0 - (e.clientY - rect.top) / rect.height;
+    // find nearest point
+    let best = -1, bestDist = Infinity;
+    for (let i = 0; i < this.points.length; i++) {
+      const d = Math.hypot(this.points[i].x - x, this.points[i].y - y);
+      if (d < bestDist && d < 0.05) { bestDist = d; best = i; }
+    }
+    this.dragging = best;
+  }
+  onMove(e) {
+    if (this.dragging === null) return;
+    const rect = this.canvas.getBoundingClientRect();
+    this.points[this.dragging].x = (e.clientX - rect.left) / rect.width;
+    this.points[this.dragging].y = 1.0 - (e.clientY - rect.top) / rect.height;
+  }
+  update(dt) {
+    // slow drift
+    for (let p of this.points) {
+      p.vx += (Math.random()-0.5) * 0.001;
+      p.vy += (Math.random()-0.5) * 0.001;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.x = Math.max(0,Math.min(1,p.x));
+      p.y = Math.max(0,Math.min(1,p.y));
+      p.vx *= 0.99; p.vy *= 0.99;
+    }
+  }
+}
+```
+
+### Domain Warp (Perlin-ish)
+```glsl
+// Simplex noise or value noise for UV warp
+vec2 warpUV(vec2 uv, float time) {
+  float n1 = sin(uv.x * 3.0 + time) * cos(uv.y * 2.0 + time * 0.7);
+  float n2 = cos(uv.x * 2.5 - time * 0.5) * sin(uv.y * 3.5 + time);
+  return uv + vec2(n1, n2) * 0.1;
+}
+```
+
+## Closing Directive
+
+Build the control point system first. Then the OKLab interpolation shader (IDW is easiest). Then domain warp. Then Coons patch (the SVG primitive). The win condition: a gradient with 6 colors that never goes muddy, that you can drag around like wet paint. RGB lerp is the enemy. OKLab is the friend. Color is math with wavelengths.
+
+**BEFORE WRITING CODE, read `repo_seed.txt` and `context.manifest.json`.** Reuse `color_systems` for ALL color conversion and interpolation. Do not roll your own OKLab math. Do not lerp in RGB.
